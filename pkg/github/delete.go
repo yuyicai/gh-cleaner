@@ -35,11 +35,13 @@ func (c *AuthClient) DeleteRepositories(owner string, repos []string) error {
 		return fmt.Errorf("owner is empty")
 	}
 	for _, repo := range repos {
+		isNotFound := false
 		log.Printf("deleting repository %s/%s", owner, repo)
 		if err := wait.PollImmediate(20*time.Second, 1*time.Minute, func() (bool, error) {
 			if _, err := c.Repositories.Delete(c.ctx, owner, repo); err != nil {
 				if resourceNotFound(err) {
-					return false, err
+					isNotFound = true
+					return true, nil
 				}
 				log.Printf("error deleting repository %s/%s: %v", owner, repo, err)
 				log.Println("retrying...")
@@ -47,12 +49,13 @@ func (c *AuthClient) DeleteRepositories(owner string, repos []string) error {
 			}
 			return true, nil
 		}); err != nil {
-			if resourceNotFound(err) {
-				log.Printf("repository %s/%s not found, skip", owner, repo)
-				return nil
-			}
+			return err
 		}
 
+		if isNotFound {
+			log.Printf("repository %s/%s not found, skip", owner, repo)
+			continue
+		}
 		log.Printf("deleted repository %s/%s ✅", owner, repo)
 	}
 	return nil
@@ -63,11 +66,13 @@ func (c *AuthClient) DeleteContainerPackages(owner string, packages []string) er
 		return fmt.Errorf("owner is empty")
 	}
 	for _, pkg := range packages {
+		isNotFound := false
 		log.Printf("deleting container package %s/%s", owner, pkg)
 		if err := wait.PollImmediate(20*time.Second, 1*time.Minute, func() (bool, error) {
 			if _, err := c.Users.DeletePackage(c.ctx, owner, "container", pkg); err != nil {
 				if resourceNotFound(err) {
-					return false, err
+					isNotFound = true
+					return true, nil
 				}
 				log.Printf("error deleting container package %s/%s: %v", owner, pkg, err)
 				log.Println("retrying...")
@@ -75,10 +80,12 @@ func (c *AuthClient) DeleteContainerPackages(owner string, packages []string) er
 			}
 			return true, nil
 		}); err != nil {
-			if resourceNotFound(err) {
-				log.Printf("package %s/%s not found, skip", owner, pkg)
-				return nil
-			}
+			return err
+		}
+
+		if isNotFound {
+			log.Printf("package %s/%s not found, skip", owner, pkg)
+			continue
 		}
 		log.Printf("deleted container package %s/%s ✅", owner, pkg)
 	}
