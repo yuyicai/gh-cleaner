@@ -3,7 +3,7 @@ clean GitHub repositories and packages
 
 # Install
 ```
-go intall github.com/yuyicai/gh-cleaner@latest
+go install github.com/yuyicai/gh-cleaner@latest
 ```
 
 # Usage
