@@ -23,8 +23,7 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"strings"
+	"errors"
 
 	"github.com/spf13/cobra"
 	"github.com/yuyicai/gh-cleaner/pkg/github"
@@ -33,6 +32,7 @@ import (
 var (
 	repositories []string
 	packages     []string
+	owner        string
 )
 
 // deleteCmd represents the delete command
@@ -49,36 +49,21 @@ func init() {
 	rootCmd.AddCommand(deleteCmd)
 
 	pf := deleteCmd.Flags()
-	pf.StringSliceVar(&repositories, "repos", repositories, "Github repos, example: octocat/Hello-World")
-	pf.StringSliceVar(&packages, "packages", packages, "Github container packages, example: octocat/Hello-World")
+	pf.StringSliceVarP(&repositories, "repos", "r", repositories, "Github repos list")
+	pf.StringSliceVarP(&packages, "packages", "p", packages, "Github container packages list")
+	pf.StringVarP(&owner, "username", "u", owner, "Github user or org name")
+	deleteCmd.MarkFlagRequired("username")
 }
 
 func deleteRun() error {
-	reposMap := make(map[string]string)
-	packagesMap := make(map[string]string)
-	fmt.Println("repositories:", repositories)
-	for _, repository := range repositories {
-		repository = strings.Replace(repository, " ", "", -1)
-		r := strings.Split(repository, "/")
-		if len(r) != 2 || r[0] == "" || r[1] == "" {
-			return fmt.Errorf("repository format error: %s", repository)
-		}
-		reposMap[r[0]] = r[1]
+	if token == "" {
+		return errors.New("please set GitHub PAT token by --token or set env variable GITHUB_TOKEN")
 	}
-
-	for _, pkg := range packages {
-		pkg = strings.Replace(pkg, " ", "", -1)
-		p := strings.Split(pkg, "/")
-		if len(p) != 2 || p[0] == "" || p[1] == "" {
-			return fmt.Errorf("package format error: %s", pkg)
-		}
-		packagesMap[p[0]] = p[1]
-	}
-
 	client := github.NewAuthClient(context.Background(), token)
-	if err := client.DeleteContainerPackages(packagesMap); err != nil {
+	if err := client.DeleteContainerPackages(owner, packages); err != nil {
 		return err
 	}
 
-	return client.DeleteRepositories(reposMap)
+	return client.DeleteRepositories(owner, repositories)
+	return nil
 }

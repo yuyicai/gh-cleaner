@@ -30,11 +30,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-func (c *AuthClient) DeleteRepositories(repos map[string]string) error {
-	for owner, repo := range repos {
-		if owner == "" || repo == "" {
-			return fmt.Errorf("repository format error: %s/%s", owner, repo)
-		}
+func (c *AuthClient) DeleteRepositories(owner string, repos []string) error {
+	if owner == "" {
+		return fmt.Errorf("owner is empty")
+	}
+	for _, repo := range repos {
 		log.Printf("deleting repository %s/%s", owner, repo)
 		if err := wait.PollImmediate(20*time.Second, 1*time.Minute, func() (bool, error) {
 			if _, err := c.Repositories.Delete(c.ctx, owner, repo); err != nil {
@@ -58,11 +58,11 @@ func (c *AuthClient) DeleteRepositories(repos map[string]string) error {
 	return nil
 }
 
-func (c *AuthClient) DeleteContainerPackages(packages map[string]string) error {
-	for owner, pkg := range packages {
-		if owner == "" || pkg == "" {
-			return fmt.Errorf("package format error: %s/%s", owner, pkg)
-		}
+func (c *AuthClient) DeleteContainerPackages(owner string, packages []string) error {
+	if owner == "" {
+		return fmt.Errorf("owner is empty")
+	}
+	for _, pkg := range packages {
 		log.Printf("deleting container package %s/%s", owner, pkg)
 		if err := wait.PollImmediate(20*time.Second, 1*time.Minute, func() (bool, error) {
 			if _, err := c.Users.DeletePackage(c.ctx, owner, "container", pkg); err != nil {
